@@ -645,16 +645,23 @@
     }
     // archi delle ali
     for (const ax of [13, 18, 43, 48]) { g.rect(ax, 19, 3, 8, '#'); g.set(ax, 19, '-'); g.set(ax + 2, 19, '-'); }
-    // cascate che scendono dalla nicchia
-    for (let y = 22; y < 38; y++) for (const cx of [28, 31, 34]) g.set(cx + ((y + f) % 2), y, '+');
     g.rect(8, 36, 48, 2, '#');
+    // grande cascata centrale: scende dalla nicchia, salta due gradoni di roccia e finisce nella vasca
+    for (let y = 14; y < 39; y++) {
+      const half = 9 + Math.floor((y - 14) / 5);
+      for (let x = 32 - half; x < 32 + half; x++) g.set(x, y, (y * 2 + x * 3 + f * 4) % 7 === 0 ? '-' : '+');
+      g.set(32 - half - 1, y, '-'); g.set(32 + half, y, '-');
+    }
+    for (const [ly, lh] of [[24, 11], [32, 13]]) {
+      for (let x = 32 - lh; x < 32 + lh; x++) g.set(x, ly + ((x * 5) % 3 === 0 ? 1 : 0), '#');
+      for (let x = 32 - lh + 1; x < 32 + lh; x += 3) g.set(x + (f % 3), ly - 1, '-');
+    }
     // grande vasca con le onde
     g.box(0, 39, w, 7);
     for (let x = 1; x < w - 1; x++) if ((x + f * 2) % 6 < 2) g.set(x, 41, '-');
-    // fila di zampilli di altezze diverse
-    const jets = [12, 18, 24, 18, 28, 34, 28, 18, 24, 18, 12];
-    jets.forEach((jh, i) => {
-      const x = 2 + i * 6;
+    // zampilli: alti ai due lati, bassi davanti alla cascata
+    const jets = [[2, 20], [7, 30], [12, 34], [17, 26], [25, 7], [32, 9], [39, 7], [46, 26], [51, 34], [56, 30], [61, 20]];
+    jets.forEach(([x, jh], i) => {
       const hh = jh + ((i + f) % 3) * 2 - 2, top = 39 - hh;
       g.rect(x - 1, top + 2, 4, hh - 2, '-');
       g.rect(x, top, 2, hh, '+');
