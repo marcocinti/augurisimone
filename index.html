@@ -163,8 +163,9 @@
   const mirror = rows => rows.map(r => [...r].reverse().join(''));
   const DINO = mirror(DINO_RIGHT);
   const DINO_WALK = [mirror(DINO_RIGHT.slice(0, 14).concat(DINO_LEGS_A)), mirror(DINO_RIGHT.slice(0, 14).concat(DINO_LEGS_B))];
+  const DINO_WALK_RIGHT = DINO_WALK.map(mirror);  // per quando se ne va verso destra
   const DINO_S = 2;
-  const DINO_SPEED = 0.8;                       // passo lento verso l'omino (0 = fermo)
+  const DINO_SPEED = 0.8;                      // passo lento verso l'omino (0 = fermo)
   const DINO_EYE = DINO[1].indexOf('.', 1);   // colonna dell'occhio, per farlo sbattere
   const DINO_AFTER = [6, 19, 33, 47];           // il T-Rex compare dopo questi numeri
 
@@ -1097,6 +1098,7 @@
   const CAKE_S = 3;
   const CAKE_W = CAKE[0].length * CAKE_S, CAKE_H = CAKE.length * CAKE_S;
   const CAKE_X = Math.round(W / 2 - CAKE_W / 2);
+  const DINO_STOP_X = CAKE_X + CAKE_W + 56;   // il T-Rex si ferma subito dopo la buca da golf
   const FLAME1 = [".Y.", ".YY", "YOY", "YOY", ".Y."];
   const FLAME2 = [".Y.", "YY.", "YOY", "YOY", ".Y."];
   const FLAME_PAL = { Y: '#ffd54f', O: '#ff7043' };
@@ -1124,6 +1126,22 @@
       const tx = CAKE_X - 46;
       if (P.x < tx) P.x = Math.min(tx, P.x + 2.5);
       else if (!P.jumping && fin.t % 45 === 0) { P.jumping = true; P.vy = -6; }
+
+      // gag finale: il T-Rex arriva, guarda la festa e se ne torna indietro
+      if (fin.t === 150) fin.dino = { x: W + 10, phase: 'in', t: 0 };
+      const d = fin.dino;
+      if (d) {
+        d.t++;
+        if (d.phase === 'in') {
+          d.x -= 1.5;
+          if (d.x <= DINO_STOP_X) { d.x = DINO_STOP_X; d.phase = 'look'; d.t = 0; }
+        } else if (d.phase === 'look') {
+          if (d.t > 130) { d.phase = 'out'; d.t = 0; }
+        } else if (d.phase === 'out') {
+          d.x += 1.5;
+          if (d.x > W + 10) fin.dino = null;
+        }
+      }
 
       // coriandoli
       const rate = fin.t < 120 ? 3 : 1;
@@ -1276,6 +1294,18 @@
     ctx.fillRect(x + 12, gy - 5, 4, 1); ctx.fillRect(x + 11, gy - 4, 1, 4); ctx.fillRect(x + 16, gy - 4, 1, 4); ctx.fillRect(x + 12, gy, 4, 1);
   }
 
+  // T-Rex del finale: cammina verso sinistra, si ferma (con un cuore), poi si gira e se ne va
+  function drawFinaleDino(d) {
+    const step = Math.floor(frame / 8) % 2;
+    const rows = d.phase === 'in' ? DINO_WALK[step] : d.phase === 'out' ? DINO_WALK_RIGHT[step] : DINO;
+    const x = Math.round(d.x), y = BASE - 1 - DINO.length * DINO_S;
+    drawSprite(rows, x, y, DINO_S, INK);
+    if (d.phase === 'look') {
+      if (frame % 150 < 8) { ctx.fillStyle = INK; ctx.fillRect(x + DINO_EYE * DINO_S, y + DINO_S, DINO_S, DINO_S); }
+      if (d.t > 20) drawSprite(FONT['♥'], x + 4, y - 18 - Math.round(Math.sin(d.t / 10) * 2), 2, '#e53935');
+    }
+  }
+
   function drawBalloon(b) {
     const x = Math.round(b.x + Math.sin(b.ph) * 6), y = Math.round(b.y);
     drawSprite(BALLOON, x, y, 2, b.c);
@@ -1334,6 +1364,7 @@
     if (state === 'finale') {
       drawCake(Math.round(fin.cakeX));
       drawHoleFlag(Math.round(fin.cakeX) + CAKE_W + 30);
+      if (fin.dino) drawFinaleDino(fin.dino);
     }
 
     const sp = playerSprite();
