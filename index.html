@@ -36,6 +36,9 @@
     display: none; font: inherit; color: inherit; background: none;
     border: 1px solid #ccc; border-radius: 4px; padding: 3px 8px; cursor: pointer;
   }
+  .credit { margin-top: 10px; font-size: 11px; color: #a8a8a8; text-align: center; letter-spacing: .3px; }
+  .credit .heart { color: #e53935; }
+  body.night .credit { color: #666; }
   .rotate { display: none; margin-bottom: 14px; font-size: 14px; text-align: center; }
   @media (pointer: coarse) {
     .keys { display: none; }
@@ -57,6 +60,7 @@
   <span class="touch-only">Tocca lo schermo per saltare</span>
   <button class="fs" id="fs" type="button" tabindex="-1">⛶ Schermo intero</button>
 </div>
+<div class="credit">Fatto con <span class="heart">♥</span> e tanti pixel da Marco &amp; Claude AI</div>
 
 <script>
 (() => {
@@ -984,7 +988,7 @@
     { from: 1, to: 14, items: ['tempio', 'rocca'] },              // Tivoli
     { from: 15, to: 20, items: ['stadio', 'striscione', 'porta', 'bandiera'] }, // Calcio e Juventus
     { from: 21, to: 30, items: ['colosseo', 'foro', 'sanpietro'] }, // Roma
-    { from: 36, to: 40, items: ['aereo', 'torre', 'aereoLontano', 'aereo'] }, // Viaggi in aereo
+    { from: 34, to: 40, items: ['aereo', 'torre', 'aereoLontano', 'aereo'] }, // Viaggi in aereo
     { from: 41, to: 46, items: ['duomo', 'galleria', 'castello', 'grattacieli'] }, // Milano
     { from: 47, to: 52, items: ['green', 'sacca', 'cart', 'tee'] }, // Golf
     { from: 53, to: 60, items: ['eiffel', 'bigben', 'liberta', 'opera', 'newyork'] } // Città del mondo
@@ -1334,9 +1338,10 @@
   // Il riquadro è largo quanto possibile, ma mai più alto dello spazio visibile
   // (così su smartphone non finisce sotto le barre del browser)
   const bar = document.querySelector('.bar'), rotate = document.querySelector('.rotate');
+  const credit = document.querySelector('.credit');
   function fit() {
     const side = TOUCH ? 12 : 32;
-    const extra = bar.offsetHeight + 12 + (rotate.offsetHeight ? rotate.offsetHeight + 14 : 0) + 8;
+    const extra = bar.offsetHeight + 12 + credit.offsetHeight + 10 + (rotate.offsetHeight ? rotate.offsetHeight + 14 : 0) + 8;
     const w = Math.min(innerWidth - side, (innerHeight - extra) * W / H, 960);
     cv.style.width = Math.max(200, Math.floor(w)) + 'px';
   }
