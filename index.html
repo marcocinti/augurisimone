@@ -136,6 +136,38 @@
     "##....##.........."
   ]);
 
+  // T-Rex di Chrome (disegnato rivolto a destra, poi specchiato verso l'omino)
+  const DINO_RIGHT = [
+    "..........########..",
+    ".........##.#######.",
+    ".........##########.",
+    ".........##########.",
+    ".........#####......",
+    ".........########...",
+    "#.......#####.......",
+    "#......#######......",
+    "##....###########...",
+    "###..#########.#....",
+    "##############......",
+    ".############.......",
+    "..##########........",
+    "...########.........",
+    "....###..##.........",
+    "....##....#.........",
+    "....#.....#.........",
+    "....##....##........"
+  ];
+  // due pose delle zampe per la camminata (come la corsa del T-Rex originale)
+  const DINO_LEGS_A = ["....###..##.........", "....###...#.........", "..........#.........", "..........##........"];
+  const DINO_LEGS_B = ["....###..##.........", "....#....###........", "....#...............", "....##.............."];
+  const mirror = rows => rows.map(r => [...r].reverse().join(''));
+  const DINO = mirror(DINO_RIGHT);
+  const DINO_WALK = [mirror(DINO_RIGHT.slice(0, 14).concat(DINO_LEGS_A)), mirror(DINO_RIGHT.slice(0, 14).concat(DINO_LEGS_B))];
+  const DINO_S = 2;
+  const DINO_SPEED = 0.8;                       // passo lento verso l'omino (0 = fermo)
+  const DINO_EYE = DINO[1].indexOf('.', 1);   // colonna dell'occhio, per farlo sbattere
+  const DINO_AFTER = [6, 19, 33, 47];           // il T-Rex compare dopo questi numeri
+
   const CLOUD = [
     "..........######..........",
     "........##......##........",
@@ -321,6 +353,7 @@
   let state, speed, dist, score, frame, groundX, obstacles, nextNum, spawnWait;
   let flash, milestone, endTime, clouds, downHeld = false;
   let fin = null, confetti = [], balloons = [], rockets = [], sparks = [];
+  let dinoPending = false;
   const P = { x: 40, y: 0, vy: 0, jumping: false, ducking: false, fastFall: false, jumpHeld: false };
 
   // Terreno: puntini e dossi generati una volta
@@ -335,7 +368,7 @@
   function reset() {
     state = 'intro';
     speed = START_SPEED; dist = 0; score = 0; frame = 0; groundX = 0;
-    obstacles = []; nextNum = START_NUM; spawnWait = 250;
+    obstacles = []; nextNum = START_NUM; spawnWait = 250; dinoPending = false;
     flash = 0; milestone = 0;
     Object.assign(P, { y: 0, vy: 0, jumping: false, ducking: false, fastFall: false, jumpHeld: false });
     clouds = [{ x: 120, y: 40 }, { x: 380, y: 75 }];
@@ -381,12 +414,22 @@
   }
 
   function spawnObstacle() {
+    // omaggio al gioco originale: dopo alcuni numeri compare il T-Rex di Chrome
+    if (dinoPending) {
+      dinoPending = false;
+      const o = { n: 0, dino: true, rows: DINO, s: DINO_S, x: W, w: DINO[0].length * DINO_S, h: DINO.length * DINO_S, passed: false };
+      o.y = BASE - 1 - o.h;
+      o.gap = Math.round(o.w * speed + 120 * 0.6) * 1.5;   // spazio extra dopo il dinosauro
+      obstacles.push(o);
+      return;
+    }
     const rows = numberRows(nextNum);
     const s = Math.random() < 0.5 ? 4 : 5;
     const o = { n: nextNum, rows, s, x: W, w: rows[0].length * s, h: 7 * s, passed: false };
     o.y = BASE - 1 - o.h;
     const minGap = Math.round(o.w * speed + 120 * 0.6);
     o.gap = minGap + Math.random() * minGap * 0.5;
+    if (DINO_AFTER.includes(nextNum)) { dinoPending = true; o.gap = minGap * 1.5; }  // spazio extra prima
     obstacles.push(o);
     nextNum++;
   }
@@ -447,7 +490,10 @@
     physics();
 
     // Ostacoli
-    for (const o of obstacles) o.x -= speed;
+    for (const o of obstacles) {
+      o.x -= speed;
+      if (o.dino) { o.x -= DINO_SPEED; o.rows = DINO_WALK[Math.floor(frame / 8) % 2]; }
+    }
     obstacles = obstacles.filter(o => o.x + o.w > -10);
 
     if (nextNum <= LAST_NUMBER) {
@@ -1155,7 +1201,7 @@
     if (visible) drawText(scoreStr, x + hiStr.length * cw, y, s, INK);
 
     // Contatore numeri (piccolo, in alto a sinistra)
-    const done = Math.min(LAST_NUMBER, obstacles.filter(o => o.passed).length + (nextNum - 1 - obstacles.length));
+    const done = (nextNum - 1) - obstacles.filter(o => o.n && !o.passed).length;
     drawText(done + '/' + LAST_NUMBER, 8, y, s, LIGHT);
   }
 
@@ -1280,7 +1326,11 @@
     for (const c of clouds) drawSprite(CLOUD, Math.round(c.x), Math.round(c.y), 2, LIGHT);
     if (state === 'finale') drawFinaleBack();
     drawGround();
-    for (const o of obstacles) drawNumberBlocks(o.rows, Math.round(o.x), o.y, o.s);
+    for (const o of obstacles) {
+      if (!o.dino) { drawNumberBlocks(o.rows, Math.round(o.x), o.y, o.s); continue; }
+      drawSprite(o.rows, Math.round(o.x), o.y, o.s, INK);
+      if (frame % 150 < 8) { ctx.fillStyle = INK; ctx.fillRect(Math.round(o.x) + DINO_EYE * o.s, o.y + o.s, o.s, o.s); }  // sbatte l'occhio
+    }
     if (state === 'finale') {
       drawCake(Math.round(fin.cakeX));
       drawHoleFlag(Math.round(fin.cakeX) + CAKE_W + 30);
