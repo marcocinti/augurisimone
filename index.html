@@ -2,47 +2,76 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Omino Runner 1-60</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Corri Simone!</title>
+<meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Corri Simone">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
-  html, body { margin: 0; height: 100%; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
   body {
+    height: 100vh; height: 100dvh;
+    box-sizing: border-box;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     background: #fff;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     font-family: Arial, Helvetica, sans-serif; color: #757575;
     transition: background-color .5s;
     user-select: none; -webkit-user-select: none; touch-action: manipulation;
+    overscroll-behavior: none;
   }
   body.night { background: #000; }
-  #wrap { width: 100%; max-width: 800px; padding: 0 16px; box-sizing: border-box; }
-  canvas { width: 100%; display: block; image-rendering: pixelated; transition: filter .5s; }
+  canvas { display: block; width: 100%; image-rendering: pixelated; transition: filter .5s; }
   body.night canvas { filter: invert(1); }
-  .hint { margin-top: 18px; font-size: 13px; text-align: center; }
-  body.night .hint { color: #8a8a8a; }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 14px; margin-top: 12px; padding: 0 8px; font-size: 13px; text-align: center; }
+  body.night .bar, body.night .rotate { color: #8a8a8a; }
   kbd { border: 1px solid #ccc; border-radius: 3px; padding: 1px 5px; font-size: 12px; }
+  .touch-only { display: none; }
+  .fs {
+    display: none; font: inherit; color: inherit; background: none;
+    border: 1px solid #ccc; border-radius: 4px; padding: 3px 8px; cursor: pointer;
+  }
+  .rotate { display: none; margin-bottom: 14px; font-size: 14px; text-align: center; }
+  @media (pointer: coarse) {
+    .keys { display: none; }
+    .touch-only { display: inline; }
+  }
+  @media (pointer: coarse) and (orientation: portrait) {
+    .rotate { display: block; }
+  }
+  @media (display-mode: standalone), (display-mode: fullscreen) {
+    .fs { display: none !important; }
+  }
 </style>
 </head>
 <body>
-<div id="wrap">
-  <canvas id="game"></canvas>
-  <div class="hint">
-    <kbd>Spazio</kbd> / <kbd>↑</kbd> salta &nbsp;·&nbsp; <kbd>↓</kbd> abbassati &nbsp;·&nbsp; su mobile tocca lo schermo
-  </div>
+<div class="rotate">↻ Gira il telefono in orizzontale per giocare meglio</div>
+<canvas id="game"></canvas>
+<div class="bar">
+  <span class="keys"><kbd>Spazio</kbd> / <kbd>↑</kbd> salta &nbsp;·&nbsp; <kbd>↓</kbd> abbassati</span>
+  <span class="touch-only">Tocca lo schermo per saltare</span>
+  <button class="fs" id="fs" type="button" tabindex="-1">⛶ Schermo intero</button>
 </div>
 
 <script>
 (() => {
   // ---------- Setup canvas ----------
-  const W = 600, H = 150, RES = 3;
+  const W = 600, H = 200, RES = 3;   // 3:1, più alto del 4:1 originale per gli smartphone
   const cv = document.getElementById('game');
   const ctx = cv.getContext('2d');
   cv.width = W * RES; cv.height = H * RES;
   ctx.scale(RES, RES);
+  const TOUCH = matchMedia('(pointer: coarse)').matches;
   ctx.imageSmoothingEnabled = false;
 
   const INK = '#535353', BG = '#ffffff', LIGHT = '#dadada', HI_INK = '#757575';
-  const BASE = 137;        // y dei piedi a terra
-  const GROUND_Y = 133;    // linea del terreno
+  const BASE = H - 13;     // y dei piedi a terra
+  const GROUND_Y = H - 17; // linea del terreno
   const PS = 3;            // scala pixel dell'omino
 
   // ---------- Parametri di gioco (simili al T-Rex originale) ----------
@@ -305,7 +334,7 @@
     obstacles = []; nextNum = START_NUM; spawnWait = 250;
     flash = 0; milestone = 0;
     Object.assign(P, { y: 0, vy: 0, jumping: false, ducking: false, fastFall: false, jumpHeld: false });
-    clouds = [{ x: 120, y: 30 }, { x: 380, y: 55 }];
+    clouds = [{ x: 120, y: 40 }, { x: 380, y: 75 }];
     P.x = 40;
     fin = null; confetti = []; balloons = []; rockets = []; sparks = [];
     resetLandmarks();
@@ -389,7 +418,7 @@
     for (const c of clouds) c.x -= v * 0.2;
     clouds = clouds.filter(c => c.x > -60);
     const lc = clouds[clouds.length - 1];
-    if (!lc || lc.x < W - 150 - Math.random() * 250) clouds.push({ x: W + 10, y: 15 + Math.random() * 55 });
+    if (!lc || lc.x < W - 150 - Math.random() * 250) clouds.push({ x: W + 10, y: 30 + Math.random() * 70 });
     groundX = (groundX + v) % GROUND_LEN;
     updateLandmarks(v);
   }
@@ -939,8 +968,8 @@
     bandiera: makeImage(buildFlag()), striscione: makeImage(buildBanner()),
     colosseo: makeImage(buildColosseum()), foro: makeImage(buildForum()), sanpietro: makeImage(buildStPeter()),
     // in cielo: gli aerei volano anche per conto loro (vx)
-    aereo: makeImage(PLANE_ROWS, 2, { sky: [28, 50], vx: 1.2 }),
-    aereoLontano: makeImage(PLANE_ROWS, 1, { sky: [30, 70], vx: 0.6 }),
+    aereo: makeImage(PLANE_ROWS, 2, { sky: [35, 80], vx: 1.2 }),
+    aereoLontano: makeImage(PLANE_ROWS, 1, { sky: [35, 95], vx: 0.6 }),
     torre: makeImage(buildControlTower()),
     duomo: makeImage(buildDuomo()), galleria: makeImage(buildGalleria()),
     castello: makeImage(buildCastello()), grattacieli: makeImage(buildMilanoSkyline()),
@@ -1055,7 +1084,7 @@
       if (fin.t % 40 === 0) balloons.push(newBalloon(0));
       // fuochi d'artificio
       if (fin.t % 38 === 0 || fin.t === 5) {
-        rockets.push({ x: rnd(30, W - 30), y: H, vy: rnd(-3.6, -2.8), ty: rnd(15, 60), c: pick(COLORS) });
+        rockets.push({ x: rnd(30, W - 30), y: H, vy: rnd(-4.2, -3.4), ty: rnd(20, 90), c: pick(COLORS) });
       }
     }
 
@@ -1229,13 +1258,13 @@
       ctx.fillRect(Math.round(c.x), Math.round(c.y), w, 2);
     }
     if (fin.phase !== 'party') return;
-    drawFancyText(HEADLINE, 26, 3, null, true);
+    drawFancyText(HEADLINE, 38, 3, null, true);
     if (fin.t > 60) {
       const phrase = PHRASES[Math.floor((fin.t - 60) / 200) % PHRASES.length];
-      drawFancyText(phrase, 50, 2, '#e53935', false);
+      drawFancyText(phrase, 70, 2, '#e53935', false);
     }
     if (fin.t > 240 && Math.floor(fin.t / 30) % 2 === 0) {
-      drawCentered('PREMI SPAZIO PER RIGIOCARE', 141, 1, HI_INK);
+      drawCentered(TOUCH ? 'TOCCA PER RIGIOCARE' : 'PREMI SPAZIO PER RIGIOCARE', H - 9, 1, HI_INK);
     }
   }
 
@@ -1259,12 +1288,12 @@
     drawHUD();
 
     if (state === 'intro') {
-      drawCentered('CORRI SIMONE!', 40, 2, INK);
-      drawCentered('PREMI SPAZIO', 62, 2, HI_INK);
+      drawCentered('CORRI SIMONE!', 60, 2, INK);
+      drawCentered(TOUCH ? 'TOCCA PER INIZIARE' : 'PREMI SPAZIO', 84, 2, HI_INK);
     } else if (state === 'over') {
-      drawCentered('GAME OVER', 42, 2, INK);
+      drawCentered('GAME OVER', 60, 2, INK);
       const rw = RESTART[0].length * 3;
-      drawSprite(RESTART, Math.round((W - rw) / 2), 70, 3, INK);
+      drawSprite(RESTART, Math.round((W - rw) / 2), 88, 3, INK);
     } else if (state === 'finale') {
       drawFinaleFront();
     }
@@ -1294,9 +1323,53 @@
     if (e.code === 'Space' || e.code === 'ArrowUp') releaseJump();
     else if (e.code === 'ArrowDown') setDuck(false);
   });
-  addEventListener('pointerdown', e => { e.preventDefault(); pressJump(); });
+  addEventListener('pointerdown', e => {
+    if (e.target.closest('button')) return;
+    e.preventDefault(); pressJump();
+  });
   addEventListener('pointerup', releaseJump);
   addEventListener('pointercancel', releaseJump);
+
+  // ---------- Adattamento allo schermo ----------
+  // Il riquadro è largo quanto possibile, ma mai più alto dello spazio visibile
+  // (così su smartphone non finisce sotto le barre del browser)
+  const bar = document.querySelector('.bar'), rotate = document.querySelector('.rotate');
+  function fit() {
+    const side = TOUCH ? 12 : 32;
+    const extra = bar.offsetHeight + 12 + (rotate.offsetHeight ? rotate.offsetHeight + 14 : 0) + 8;
+    const w = Math.min(innerWidth - side, (innerHeight - extra) * W / H, 960);
+    cv.style.width = Math.max(200, Math.floor(w)) + 'px';
+  }
+  addEventListener('resize', fit);
+  addEventListener('orientationchange', () => setTimeout(fit, 200));
+  document.addEventListener('fullscreenchange', fit);
+  document.addEventListener('webkitfullscreenchange', fit);
+  fit();
+
+  // ---------- Schermo intero (dove il browser lo permette; non su iPhone) ----------
+  const fsBtn = document.getElementById('fs');
+  const root = document.documentElement;
+  const canFs = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+  const isFs = () => document.fullscreenElement || document.webkitFullscreenElement;
+  if (canFs) fsBtn.style.display = 'inline-block';
+  function updateFsLabel() { fsBtn.textContent = isFs() ? '✕ Esci da schermo intero' : '⛶ Schermo intero'; }
+  fsBtn.addEventListener('click', async () => {
+    try {
+      if (isFs()) await (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      else {
+        await (root.requestFullscreen || root.webkitRequestFullscreen).call(root);
+        if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
+      }
+    } catch (e) { /* schermo intero non disponibile */ }
+    fsBtn.blur();
+  });
+  document.addEventListener('fullscreenchange', updateFsLabel);
+  document.addEventListener('webkitfullscreenchange', updateFsLabel);
+
+  // ---------- App sulla schermata Home (funziona solo pubblicato su http/https) ----------
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
 
   // ---------- Loop a passo fisso (60 Hz) ----------
   const STEP = 1000 / 60;
