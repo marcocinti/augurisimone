@@ -167,7 +167,7 @@
   const DINO_S = 2;
   const DINO_SPEED = 0.8;                      // passo lento verso l'omino (0 = fermo)
   const DINO_EYE = DINO[1].indexOf('.', 1);   // colonna dell'occhio, per farlo sbattere
-  const DINO_AFTER = [6, 19, 33, 47];           // il T-Rex compare dopo questi numeri
+  const DINO_AFTER = [30, 42, 50, 55];           // il T-Rex compare dopo questi numeri
 
   const CLOUD = [
     "..........######..........",
@@ -317,9 +317,43 @@
   const sfx = {
     jump: () => beep(620, 0.08),
     point: () => { beep(780, 0.08); beep(1170, 0.14, 'square', 0.04, 0.09); },
-    hit: () => { beep(160, 0.25, 'sawtooth', 0.05); },
+    hit: () => { beep(160, 0.25, 'sawtooth', 0.05); playFail(); },
     pop: () => beep(180 + Math.random() * 120, 0.18, 'triangle', 0.03)
   };
+
+  // "Wah wah wah wahhh": quattro note che scendono, l'ultima lunga e tremolante
+  let failNodes = [];
+  function playFail() {
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      let t = actx.currentTime + 0.25;
+      [[392, 0.3], [370, 0.3], [349, 0.3], [330, 1.0]].forEach(([f, d], i) => {
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.type = 'square';
+        o.frequency.setValueAtTime(f, t);
+        if (i === 3) {
+          const lfo = actx.createOscillator(), lg = actx.createGain();
+          lfo.frequency.value = 6; lg.gain.value = 7;
+          lfo.connect(lg); lg.connect(o.frequency);
+          lfo.start(t); lfo.stop(t + d);
+          o.frequency.linearRampToValueAtTime(f * 0.94, t + d);
+          failNodes.push(lfo);
+        }
+        g.gain.setValueAtTime(0.045, t);
+        g.gain.setValueAtTime(0.045, t + d * 0.8);
+        g.gain.linearRampToValueAtTime(0, t + d);
+        o.connect(g); g.connect(actx.destination);
+        o.start(t); o.stop(t + d);
+        failNodes.push(o);
+        t += d;
+      });
+    } catch (e) { /* audio non disponibile */ }
+  }
+  // se si riparte subito, la musichetta si interrompe
+  function stopFail() {
+    for (const n of failNodes) { try { n.stop(); } catch (e) {} }
+    failNodes = [];
+  }
 
   // "Tanti auguri a te" in 8-bit
   const G4 = 392, A4 = 440, B4 = 493.88, C5 = 523.25, D5 = 587.33, E5 = 659.25, F5 = 698.46, G5 = 783.99;
@@ -381,7 +415,7 @@
 
   function start() { state = 'running'; jump(); }
 
-  function restart() { reset(); start(); }
+  function restart() { stopFail(); reset(); start(); }
 
   function jump() {
     if (P.jumping || P.ducking) return;
@@ -595,6 +629,42 @@
   }
 
   // Tivoli: Rocca Pia, due torri grandi e due piccole
+  // Tivoli: Fontana di Nettuno a Villa d'Este, con la Fontana dell'Organo dietro.
+  // f = fotogramma (0..2) per animare zampilli e cascate
+  function buildNettuno(f) {
+    const w = 64, h = 46, g = grid(w, h);
+    // Fontana dell'Organo: corpo centrale alto e ali laterali
+    g.box(10, 14, 44, 24, '-');
+    g.box(23, 3, 18, 35, '-');
+    g.rect(21, 1, 22, 2, '#');
+    for (let x = 23; x < 41; x += 2) g.set(x, 0, '#');
+    g.rect(9, 12, 46, 2, '#');
+    // nicchia centrale ad arco
+    for (let y = 8; y < 30; y++) for (let x = 27; x <= 36; x++) {
+      if (y >= 13 || ((x - 31.5) / 5) ** 2 + ((y - 13) / 5) ** 2 <= 1) g.set(x, y, '#');
+    }
+    // archi delle ali
+    for (const ax of [13, 18, 43, 48]) { g.rect(ax, 19, 3, 8, '#'); g.set(ax, 19, '-'); g.set(ax + 2, 19, '-'); }
+    // cascate che scendono dalla nicchia
+    for (let y = 22; y < 38; y++) for (const cx of [28, 31, 34]) g.set(cx + ((y + f) % 2), y, '+');
+    g.rect(8, 36, 48, 2, '#');
+    // grande vasca con le onde
+    g.box(0, 39, w, 7);
+    for (let x = 1; x < w - 1; x++) if ((x + f * 2) % 6 < 2) g.set(x, 41, '-');
+    // fila di zampilli di altezze diverse
+    const jets = [12, 18, 24, 18, 28, 34, 28, 18, 24, 18, 12];
+    jets.forEach((jh, i) => {
+      const x = 2 + i * 6;
+      const hh = jh + ((i + f) % 3) * 2 - 2, top = 39 - hh;
+      g.rect(x - 1, top + 2, 4, hh - 2, '-');
+      g.rect(x, top, 2, hh, '+');
+      for (let y = top + 3; y < 39; y += 4) g.set(x + ((y + f) % 2), y, '-');
+      g.set(x - 2 + ((i + f) % 2) * 5, top + 1, '#');
+      g.set(x - 1, top - 1 - (f % 2), '#'); g.set(x + 2, top - 1 - ((f + 1) % 2), '#');
+    });
+    return g.rows();
+  }
+
   function buildRocca() {
     const g = grid(46, 36);
     const merli = (x, y, w) => { for (let k = 0; k < w; k += 3) g.rect(x + k, y, 2, 2, '#'); };
@@ -1012,9 +1082,16 @@
     return { img: c, w, h, ...extra };
   }
 
+  // Monumento animato: più fotogrammi della stessa dimensione
+  function makeAnim(rowsList) {
+    const frames = rowsList.map(r => makeImage(r));
+    return { ...frames[0], frames: frames.map(f => f.img) };
+  }
+
   const PLANE_ROWS = buildPlane();
   const LM = {
     tempio: makeImage(buildTemple()), rocca: makeImage(buildRocca()),
+    nettuno: makeAnim([0, 1, 2].map(buildNettuno)),
     stadio: makeImage(buildStadium()), porta: makeImage(buildGoal()),
     bandiera: makeImage(buildFlag()), striscione: makeImage(buildBanner()),
     colosseo: makeImage(buildColosseum()), foro: makeImage(buildForum()), sanpietro: makeImage(buildStPeter()),
@@ -1032,7 +1109,7 @@
 
   // Periodi: numeri da..a → monumenti sullo sfondo (in ordine, a rotazione)
   const SCENES = [
-    { from: 1, to: 14, items: ['tempio', 'rocca'] },              // Tivoli
+    { from: 1, to: 14, items: ['tempio', 'nettuno', 'rocca'] },   // Tivoli
     { from: 15, to: 20, items: ['stadio', 'striscione', 'porta', 'bandiera'] }, // Calcio e Juventus
     { from: 21, to: 30, items: ['colosseo', 'foro', 'sanpietro'] }, // Roma
     { from: 34, to: 40, items: ['aereo', 'torre', 'aereoLontano', 'aereo'] }, // Viaggi in aereo
@@ -1068,7 +1145,10 @@
   }
 
   function drawLandmarks() {
-    for (const l of landmarks) ctx.drawImage(l.lm.img, Math.round(l.x), l.y, l.lm.w, l.lm.h);
+    for (const l of landmarks) {
+      const img = l.lm.frames ? l.lm.frames[Math.floor(frame / 10) % l.lm.frames.length] : l.lm.img;
+      ctx.drawImage(img, Math.round(l.x), l.y, l.lm.w, l.lm.h);
+    }
   }
 
   // ---------- Finale: festa di compleanno ----------
