@@ -29,7 +29,7 @@
   canvas { display: block; width: 100%; image-rendering: pixelated; transition: filter .5s; }
   body.night canvas { filter: invert(1); }
   .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 14px; margin-top: 12px; padding: 0 8px; font-size: 13px; text-align: center; }
-  body.night .bar, body.night .rotate { color: #8a8a8a; }
+  body.night .bar { color: #8a8a8a; }
   kbd { border: 1px solid #ccc; border-radius: 3px; padding: 1px 5px; font-size: 12px; }
   .touch-only { display: none; }
   .fs {
@@ -39,7 +39,19 @@
   .credit { margin-top: 10px; font-size: 11px; color: #a8a8a8; text-align: center; letter-spacing: .3px; }
   .credit .heart { color: #e53935; }
   body.night .credit { color: #666; }
-  .rotate { display: none; margin-bottom: 14px; font-size: 14px; text-align: center; }
+  .rotate {
+    display: none; margin: 0 12px 14px; padding: 8px 16px; border-radius: 20px;
+    background: #f0f0f0; color: #535353; font-size: 15px; font-weight: bold; text-align: center;
+  }
+  body.night .rotate { background: #222; color: #bdbdbd; }
+  /* il telefonino si gira qualche volta all'apertura, poi resta fermo */
+  .rotate .phone { display: inline-block; margin-right: 6px; animation: tilt 1.8s ease-in-out .5s 3; }
+  @keyframes tilt {
+    0%, 25% { transform: rotate(0); }
+    50%, 80% { transform: rotate(-90deg); }
+    100% { transform: rotate(0); }
+  }
+  @media (prefers-reduced-motion: reduce) { .rotate .phone { animation: none; } }
   @media (pointer: coarse) {
     .keys { display: none; }
     .touch-only { display: inline; }
@@ -53,7 +65,7 @@
 </style>
 </head>
 <body>
-<div class="rotate">↻ Gira il telefono in orizzontale per giocare meglio</div>
+<div class="rotate"><span class="phone">📱</span>Gira il telefono in orizzontale per giocare meglio</div>
 <canvas id="game"></canvas>
 <div class="bar">
   <span class="keys"><kbd>Spazio</kbd> / <kbd>↑</kbd> salta &nbsp;·&nbsp; <kbd>↓</kbd> abbassati</span>
