@@ -1,7 +1,7 @@
 // Service worker minimo: permette di installare il gioco sulla schermata Home
 // e di giocarci anche offline. Strategia "prima la rete": gli aggiornamenti
 // pubblicati arrivano subito, la copia salvata serve solo senza connessione.
-const CACHE = 'corri-simone-v2';
+const CACHE = 'corri-simone-v3';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', e => {
