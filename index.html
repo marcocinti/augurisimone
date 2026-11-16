@@ -805,22 +805,83 @@
     return g.rows();
   }
 
+  // Tivoli: Villa Adriana, il Canopo: colonne con architrave e arco al centro,
+  // la statua del guerriero con elmo e scudo, la vasca con i riflessi
+  function buildVillaAdriana() {
+    const w = 60, h = 46, g = grid(w, h), cx = 31;
+    // architravi dritti ai lati
+    g.box(1, 12, 21, 4, '+'); g.box(40, 12, 19, 4, '+');
+    // arco al centro, appoggiato sui capitelli delle due colonne centrali
+    const inArch = (x, y) => { const r = Math.hypot(x - cx, y - 15); return y < 16 && r >= 8 && r <= 11.6; };
+    for (let y = 2; y < 16; y++) for (let x = cx - 12; x <= cx + 12; x++) {
+      if (!inArch(x, y)) continue;
+      const edge = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([ax, ay]) => !inArch(x + ax, y + ay) && y + ay < 16);
+      g.set(x, y, edge ? '#' : '+');
+    }
+    g.rect(cx - 1, 3, 3, 4, '#'); g.set(cx, 4, '+'); g.set(cx, 5, '+');
+    // colonne corinzie: capitello, fusto con le venature, base
+    for (const x of [3, 19, 41, 57]) {
+      g.box(x - 2, 15, 5, 3, '-'); g.set(x - 1, 16, '#'); g.set(x + 1, 16, '#');
+      g.box(x - 1, 18, 3, 19);
+      for (let y = 21; y < 35; y += 6) g.set(x + (y % 4 ? 0 : -1) + 1, y, '-');
+      g.box(x - 2, 36, 5, 2, '-');
+    }
+    // statua: disegnata in chiaro, poi contornata
+    const statue = [];
+    const add = (dx, y) => statue.push([cx + dx, y]);
+    [[0, 16], [1, 16], [-1, 17], [0, 17], [1, 17], [2, 17]].forEach(([dx, y]) => add(dx, y)); // cresta dell'elmo
+    for (let dx = -1; dx <= 1; dx++) { add(dx, 18); add(dx, 19); }                            // elmo e testa
+    add(0, 20);                                                                                // collo
+    for (let dx = -3; dx <= 3; dx++) add(dx, 21);                                              // spalle
+    for (let y = 22; y < 27; y++) for (let dx = -2; dx <= 2; dx++) add(dx, y);                // busto
+    [[-3, 22], [-4, 23], [-4, 24], [-5, 25], [-5, 26]].forEach(([dx, y]) => add(dx, y));      // braccio teso
+    [[3, 22], [3, 23], [4, 24]].forEach(([dx, y]) => add(dx, y));                             // braccio con lo scudo
+    for (let y = 27; y < 32; y++) { add(y < 29 ? -1 : -2, y); add(-1, y); add(1, y); add(y < 29 ? 1 : 2, y); }
+    for (let y = 23; y <= 30; y++) for (let x = cx + 2; x <= cx + 8; x++) {
+      if (Math.hypot(x - (cx + 5), y - 26.5) <= 3) statue.push([x, y]);                       // scudo rotondo
+    }
+    const isStatue = new Set(statue.map(([x, y]) => x + ',' + y));
+    for (const [x, y] of statue) {
+      g.set(x, y, '+');
+      for (const [ax, ay] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        if (!isStatue.has((x + ax) + ',' + (y + ay)) && g.get(x + ax, y + ay) === '.') g.set(x + ax, y + ay, '#');
+      }
+    }
+    g.set(cx + 5, 26, '-'); g.set(cx + 4, 26, '-');
+    // piedistallo
+    g.box(cx - 4, 32, 9, 6, '-'); g.rect(cx - 5, 32, 11, 1, '#');
+    // stilobate e vasca, con i riflessi delle colonne nell'acqua
+    g.rect(0, 38, w, 2, '#');
+    g.box(0, 40, w, 6);
+    for (const x of [3, 19, cx, 41, 57]) for (let y = 41; y < 45; y += 2) g.rect(x - 1 + (y % 4 ? 1 : 0), y, 2, 1, '-');
+    for (let x = 2; x < w - 2; x += 7) g.rect(x, 43, 3, 1, '-');
+    return g.rows();
+  }
+
   function buildRocca() {
-    const g = grid(46, 36);
+    const g = grid(48, 36);
     const merli = (x, y, w) => { for (let k = 0; k < w; k += 3) g.rect(x + k, y, 2, 2, '#'); };
-    g.box(13, 10, 7, 26, '-'); merli(13, 8, 7);
-    g.box(27, 12, 7, 24, '-'); merli(27, 10, 7);
-    g.box(8, 16, 30, 20); merli(8, 14, 30);
-    g.rect(20, 27, 6, 9, '#'); g.set(20, 27, '+'); g.set(25, 27, '+');
-    g.rect(14, 20, 1, 3, '#'); g.rect(31, 20, 1, 3, '#');
+    // apparato a sporgere: in cima una fascia più larga (o = sporgenza per lato),
+    // sorretta dai beccatelli, con i merli sopra
+    const crown = (x, y, w, o) => {
+      g.box(x - o, y, w + o * 2, 4, '-');
+      for (let k = x + 1; k < x + w - 1; k += 3) g.rect(k, y + 4, 1, 2, '#');
+      merli(x - o, y - 2, w + o * 2);
+    };
+    g.box(14, 10, 7, 26, '-'); crown(14, 10, 7, 1);
+    g.box(28, 12, 7, 24, '-'); crown(28, 12, 7, 1);
+    g.box(9, 16, 30, 20); crown(9, 16, 30, 1);
+    g.rect(21, 27, 6, 9, '#'); g.set(21, 27, '+'); g.set(26, 27, '+');
+    g.rect(15, 23, 1, 3, '#'); g.rect(32, 23, 1, 3, '#');
     const tower = (x, y, w) => {
-      g.box(x, y, w, 36 - y); merli(x, y - 2, w);
+      g.box(x, y, w, 36 - y);
       g.rect(x + w - 3, y + 1, 1, 36 - y - 2, '-');
+      crown(x, y, w, 2);
       g.rect(x - 1, 30, w + 2, 6, '#'); g.rect(x, 31, w, 5, '+');
       const cx = x + Math.floor(w / 2) - 1;
-      g.rect(cx, y + 5, 1, 3, '#'); g.rect(cx, y + 14, 1, 3, '#');
+      g.rect(cx, y + 8, 1, 3, '#'); g.rect(cx, y + 16, 1, 3, '#');
     };
-    tower(1, 6, 12); tower(33, 9, 12);
+    tower(2, 6, 12); tower(34, 9, 12);
     return g.rows();
   }
 
@@ -1232,7 +1293,7 @@
   const LM = {
     tempio: makeImage(buildTemple()), rocca: makeImage(buildRocca()),
     nettuno: makeAnim([0, 1, 2].map(buildNettuno)),          // prima versione, tenuta da parte
-    nettunoFoto: makeAnim([0, 1, 2].map(buildNettunoFoto)),
+    nettunoFoto: makeAnim([0, 1, 2].map(buildNettunoFoto)), villaAdriana: makeImage(buildVillaAdriana()),
     stadio: makeImage(buildStadium()), porta: makeImage(buildGoal()),
     bandiera: makeImage(buildFlag()), striscione: makeImage(buildBanner()),
     colosseo: makeImage(buildColosseum()), foro: makeImage(buildForum()), sanpietro: makeImage(buildStPeter()),
@@ -1250,7 +1311,7 @@
 
   // Periodi: numeri da..a → monumenti sullo sfondo (in ordine, a rotazione)
   const SCENES = [
-    { from: 1, to: 14, items: ['tempio', 'nettunoFoto', 'rocca'] },   // Tivoli (oppure 'nettuno')
+    { from: 1, to: 14, items: ['tempio', 'nettunoFoto', 'villaAdriana', 'rocca'] },   // Tivoli (oppure 'nettuno')
     { from: 15, to: 20, items: ['stadio', 'striscione', 'porta', 'bandiera'] }, // Calcio e Juventus
     { from: 21, to: 30, items: ['colosseo', 'foro', 'sanpietro'] }, // Roma
     { from: 34, to: 40, items: ['aereo', 'torre', 'aereoLontano', 'aereo'] }, // Viaggi in aereo
