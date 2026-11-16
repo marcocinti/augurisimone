@@ -644,43 +644,164 @@
   // Tivoli: Fontana di Nettuno a Villa d'Este, con la Fontana dell'Organo dietro.
   // f = fotogramma (0..2) per animare zampilli e cascate
   function buildNettuno(f) {
-    const w = 64, h = 46, g = grid(w, h);
-    // Fontana dell'Organo: corpo centrale alto e ali laterali
-    g.box(10, 14, 44, 24, '-');
-    g.box(23, 3, 18, 35, '-');
-    g.rect(21, 1, 22, 2, '#');
-    for (let x = 23; x < 41; x += 2) g.set(x, 0, '#');
-    g.rect(9, 12, 46, 2, '#');
-    // nicchia centrale ad arco
-    for (let y = 8; y < 30; y++) for (let x = 27; x <= 36; x++) {
-      if (y >= 13 || ((x - 31.5) / 5) ** 2 + ((y - 13) / 5) ** 2 <= 1) g.set(x, y, '#');
+    const w = 68, h = 48, g = grid(w, h), cx = 34, POOL = 42;
+    // cipressi ai lati, due per parte
+    const cypress = (x, top) => {
+      for (let y = top; y < POOL; y++) {
+        const t = (y - top) / (POOL - top);
+        const half = Math.round(t < 0.6 ? 0.5 + (t / 0.6) * 3 : 3.5 - (t - 0.6) * 3);
+        g.rect(x - half, y, half * 2 + 1, 1, '#');
+        if ((y * 3 + x) % 4 === 0 && half > 0) g.set(x + (y % 3) - 1, y, '-');
+      }
+      g.set(x, top - 1, '#');
+    };
+    cypress(4, 3); cypress(10, 12); cypress(63, 2); cypress(57, 10);
+    // Fontana dell'Organo: casetta in cima, attico con lo stemma, cornicione
+    g.box(cx - 5, 0, 11, 7, '-');
+    g.rect(cx - 3, 2, 2, 3, '#'); g.rect(cx + 2, 2, 2, 3, '#');
+    g.box(cx - 12, 6, 25, 6, '+');
+    g.rect(cx - 2, 7, 5, 4, '#'); g.rect(cx - 1, 8, 3, 2, '-'); g.set(cx, 5, '#');
+    for (let x = cx - 10; x <= cx + 10; x += 4) if (Math.abs(x - cx) > 3) g.rect(x, 8, 2, 2, '-');
+    g.rect(cx - 19, 12, 39, 2, '#');
+    // facciata
+    g.box(cx - 18, 14, 37, 17, '-');
+    // grande arco centrale con l'edicola dentro
+    for (let y = 15; y < 31; y++) for (let x = cx - 6; x <= cx + 6; x++) {
+      if (y >= 21 || ((x - cx) / 6.5) ** 2 + ((y - 21) / 6) ** 2 <= 1) g.set(x, y, '#');
     }
-    // archi delle ali
-    for (const ax of [13, 18, 43, 48]) { g.rect(ax, 19, 3, 8, '#'); g.set(ax, 19, '-'); g.set(ax + 2, 19, '-'); }
-    g.rect(8, 36, 48, 2, '#');
-    // grande cascata centrale: scende dalla nicchia, salta due gradoni di roccia e finisce nella vasca
-    for (let y = 14; y < 39; y++) {
-      const half = 9 + Math.floor((y - 14) / 5);
-      for (let x = 32 - half; x < 32 + half; x++) g.set(x, y, (y * 2 + x * 3 + f * 4) % 7 === 0 ? '-' : '+');
-      g.set(32 - half - 1, y, '-'); g.set(32 + half, y, '-');
+    for (let y = 19; y < 31; y++) for (let x = cx - 3; x <= cx + 3; x++) {
+      if (y >= 23 || ((x - cx) / 3.5) ** 2 + ((y - 23) / 4) ** 2 <= 1) g.set(x, y, '-');
     }
-    for (const [ly, lh] of [[24, 11], [32, 13]]) {
-      for (let x = 32 - lh; x < 32 + lh; x++) g.set(x, ly + ((x * 5) % 3 === 0 ? 1 : 0), '#');
-      for (let x = 32 - lh + 1; x < 32 + lh; x += 3) g.set(x + (f % 3), ly - 1, '-');
+    g.rect(cx - 1, 24, 3, 7, '#'); g.set(cx, 20, '+');
+    // colonne binate ai lati dell'arco
+    for (const d of [-11, -9, 9, 11]) {
+      g.rect(cx + d, 15, 1, 15, '+');
+      g.set(cx + d, 15, '#'); g.set(cx + d, 29, '#');
     }
-    // grande vasca con le onde
-    g.box(0, 39, w, 7);
-    for (let x = 1; x < w - 1; x++) if ((x + f * 2) % 6 < 2) g.set(x, 41, '-');
-    // zampilli: alti ai due lati, bassi davanti alla cascata
-    const jets = [[2, 20], [7, 30], [12, 34], [17, 26], [25, 7], [32, 9], [39, 7], [46, 26], [51, 34], [56, 30], [61, 20]];
-    jets.forEach(([x, jh], i) => {
-      const hh = jh + ((i + f) % 3) * 2 - 2, top = 39 - hh;
-      g.rect(x - 1, top + 2, 4, hh - 2, '-');
-      g.rect(x, top, 2, hh, '+');
-      for (let y = top + 3; y < 39; y += 4) g.set(x + ((y + f) % 2), y, '-');
-      g.set(x - 2 + ((i + f) % 2) * 5, top + 1, '#');
-      g.set(x - 1, top - 1 - (f % 2), '#'); g.set(x + 2, top - 1 - ((f + 1) % 2), '#');
-    });
+    // ali: finestrella e nicchia con la statua
+    for (const nx of [cx - 15, cx + 13]) {
+      g.rect(nx, 16, 3, 2, '#');
+      g.rect(nx, 20, 3, 8, '#'); g.set(nx, 20, '-'); g.set(nx + 2, 20, '-');
+      g.rect(nx + 1, 22, 1, 5, '+'); g.set(nx + 1, 21, '+');
+    }
+    // terrazza con la balaustra
+    g.rect(8, 31, 53, 1, '#');
+    for (let x = 9; x < 60; x += 2) g.rect(x, 32, 1, 2, '#');
+    g.rect(8, 34, 53, 1, '#');
+    // muro di roccia
+    for (let y = 35; y < POOL; y++) for (let x = 8; x < 61; x++) {
+      g.set(x, y, x === 8 || x === 60 || (x * 7 + y * 13) % 11 === 0 ? '#' : '-');
+    }
+    // cascata centrale: esce dall'edicola, scavalca la balaustra e scende sulle rocce
+    for (let y = 30; y < POOL; y++) {
+      const half = y < 35 ? 3 : 4 + Math.floor((y - 35) / 3);
+      for (let x = cx - half; x <= cx + half; x++) g.set(x, y, (y * 2 + x * 3 + f * 4) % 7 === 0 ? '-' : '+');
+    }
+    for (const ly of [36, 39]) for (let x = cx - 6; x <= cx + 6; x += 2) g.set(x + (f % 2), ly, '-');
+    // vasca con le onde
+    g.box(0, POOL, w, h - POOL);
+    for (let x = 1; x < w - 1; x++) if ((x + f * 2) % 6 < 2) g.set(x, POOL + 2, '-');
+    // zampilli: r = mezza larghezza; i due grandi getti per ultimi, davanti a tutto
+    const jet = (x, hh, r, i) => {
+      hh += ((i + f) % 3) * 2 - 2;
+      const top = POOL - hh;
+      g.rect(x - r, top + 2, r * 2 + 1, hh - 2, '+');
+      g.rect(x - Math.max(0, r - 1), top, Math.max(1, r * 2 - 1), 2, '+');
+      for (let y = top + 3; y < POOL; y += 4) if (r > 0) g.set(x + ((y + f) % 3) - 1, y, '-');
+      for (let y = top + 3; y < POOL; y += 3) { g.set(x - r - 1, y + (f % 2), '#'); g.set(x + r + 1, y + 1 - (f % 2), '#'); }
+      g.set(x - r - 1, top + 1 - (f % 2), '#'); g.set(x + r + 1, top - ((f + 1) % 2), '#');
+      g.set(x, top - 1 - (f % 2), '#');
+    };
+    [[13, 8, 0], [17, 10, 0], [21, 22, 1], [cx - 3, 9, 0], [cx + 3, 9, 0], [47, 22, 1], [51, 10, 0], [55, 8, 0],
+     [cx - 9, 21, 2], [cx + 9, 21, 2]].forEach(([x, hh, r], i) => jet(x, hh, r, i));
+    return g.rows();
+  }
+
+  // Seconda versione, dalla foto scontornata: Fontana dell'Organo con coronamento
+  // curvo e stemma, balaustra, roccia con la tazza, getti e alberi scuri ai lati
+  function buildNettunoFoto(f) {
+    const w = 70, h = 50, g = grid(w, h), cx = 35, POOL = 45;
+    // frontone spezzato: due archi salgono dagli angoli e finiscono in una voluta verso il centro
+    for (const s of [-1, 1]) {
+      for (let d = 5; d <= 14; d++) {
+        const t = (14 - d) / 9, y = 17 - Math.round(4 * Math.sin(Math.PI * t * 0.8));
+        g.rect(cx + s * d, y + 1, 1, 17 - y, '+');
+        g.set(cx + s * d, y, '#');
+      }
+      const vx = cx + s * 5;
+      g.set(vx, 14, '#'); g.set(vx - s, 15, '#'); g.set(vx, 16, '#'); g.set(vx + s, 16, '#'); g.set(vx, 15, '+');
+    }
+    // stemma ovale al centro e sopra l'aquila, con le ali aperte verso il basso
+    for (let y = 12; y <= 17; y++) for (let x = cx - 3; x <= cx + 3; x++) {
+      const e = ((x - cx) / 3.4) ** 2 + ((y - 14.5) / 2.9) ** 2;
+      if (e <= 1) g.set(x, y, e > 0.45 ? '#' : '-');
+    }
+    [[9, [0]], [10, [-1, 0, 1]], [11, [-3, -2, -1, 0, 1, 2, 3]], [12, [-3, 3]]]
+      .forEach(([y, xs]) => xs.forEach(d => g.set(cx + d, y, '#')));
+    // cornicione dritto con il fregio
+    g.rect(cx - 15, 17, 31, 1, '#');
+    g.rect(cx - 14, 18, 29, 1, '-');
+    for (let x = cx - 13; x <= cx + 13; x += 3) g.set(x, 18, '#');
+    // facciata a due ordini, divisa da lesene
+    g.box(cx - 14, 19, 29, 13, '-');
+    g.rect(cx - 14, 25, 29, 1, '#');
+    for (const d of [-12, -6, 6, 12]) g.rect(cx + d, 19, 1, 12, '+');
+    // ali: rilievi sopra, nicchie con le statue sotto
+    for (const nx of [cx - 10, cx + 7]) {
+      g.box(nx, 20, 4, 4, '+'); g.set(nx + 1, 21, '-'); g.set(nx + 2, 22, '-');
+      g.rect(nx, 26, 4, 5, '#'); g.set(nx, 26, '-'); g.set(nx + 3, 26, '-');
+      g.rect(nx + 1, 27, 2, 4, '+');
+    }
+    // grande arco centrale con il tempietto a cupola
+    for (let y = 19; y < 32; y++) for (let x = cx - 5; x <= cx + 5; x++) {
+      if (y >= 24 || ((x - cx) / 5.5) ** 2 + ((y - 24) / 4.5) ** 2 <= 1) g.set(x, y, '#');
+    }
+    for (let y = 22; y < 32; y++) for (let x = cx - 3; x <= cx + 3; x++) {
+      if (y >= 26 || ((x - cx) / 3.5) ** 2 + ((y - 26) / 3.5) ** 2 <= 1) g.set(x, y, '-');
+    }
+    g.set(cx, 22, '+'); g.rect(cx - 3, 26, 7, 1, '+'); g.rect(cx - 1, 27, 3, 5, '#');
+    // muri di roccia ai lati, più alti della balaustra
+    for (let y = 30; y < POOL; y++) for (let x = 10; x <= 60; x++) {
+      if (y < 36 && x > 13 && x < 57) continue;
+      g.set(x, y, x === 10 || x === 60 || (x * 7 + y * 13) % 11 === 0 ? '#' : '-');
+    }
+    // balaustra
+    g.rect(14, 32, 43, 1, '#');
+    for (let x = 15; x < 56; x += 2) g.rect(x, 33, 1, 2, '#');
+    g.rect(14, 35, 43, 1, '#');
+    // mensola da cui escono gli zampilli piccoli
+    g.rect(14, 40, 43, 1, '#');
+    // cascatella al centro, nella tazza
+    for (let y = 32; y < POOL; y++) for (let x = cx - 1; x <= cx + 1; x++) g.set(x, y, (y + x + f) % 3 === 0 ? '-' : '+');
+    g.box(cx - 5, 41, 11, 3, '-');
+    g.rect(cx - 4, 41, 9, 1, '+');
+    // vasca con le onde
+    g.box(0, POOL, w, h - POOL);
+    for (let x = 1; x < w - 1; x++) if ((x + f * 2) % 6 < 2) g.set(x, POOL + 2, '-');
+    // alberi in mezzatinta, per non distrarre: a punta (cipressi) o tondeggianti
+    const tree = (x, top, maxHalf, pointed) => {
+      for (let y = top; y < POOL; y++) {
+        const t = (y - top) / (POOL - top);
+        const half = Math.round(pointed ? maxHalf * Math.min(1, 0.15 + t * 1.6) : maxHalf * Math.sqrt(Math.min(1, t / 0.3)));
+        g.rect(x - half, y, half * 2 + 1, 1, '-');
+        for (let k = -half + 1; k < half; k += 2) if ((y * 5 + k * 3 + x) % 5 === 0) g.set(x + k, y, '+');
+      }
+    };
+    tree(6, 7, 4, true); tree(1, 17, 3, false);
+    tree(64, 1, 5, true); tree(69, 15, 3, false);
+    // zampilli: r = mezza larghezza, base = da dove partono
+    const jet = (x, base, hh, r, i) => {
+      hh += ((i + f) % 3) * 2 - 2;
+      const top = base - hh;
+      g.rect(x - r, top + 2, r * 2 + 1, hh - 2, '+');
+      g.rect(x - Math.max(0, r - 1), top, Math.max(1, r * 2 - 1), 2, '+');
+      for (let y = top + 3; y < base; y += 4) if (r > 0) g.set(x + ((y + f) % 3) - 1, y, '-');
+      for (let y = top + 3; y < base; y += 3) { g.set(x - r - 1, y + (f % 2), '#'); g.set(x + r + 1, y + 1 - (f % 2), '#'); }
+      g.set(x - r - 1, top + 1 - (f % 2), '#'); g.set(x + r + 1, top - ((f + 1) % 2), '#');
+      g.set(x, top - 1 - (f % 2), '#');
+    };
+    [[cx - 9, 40, 7, 0], [cx - 7, 40, 8, 0], [cx - 4, 40, 6, 0], [cx + 4, 40, 6, 0], [cx + 7, 40, 8, 0], [cx + 9, 40, 7, 0],
+     [cx - 13, POOL, 20, 2], [cx + 13, POOL, 20, 2]].forEach(([x, base, hh, r], i) => jet(x, base, hh, r, i));
     return g.rows();
   }
 
@@ -1110,7 +1231,8 @@
   const PLANE_ROWS = buildPlane();
   const LM = {
     tempio: makeImage(buildTemple()), rocca: makeImage(buildRocca()),
-    nettuno: makeAnim([0, 1, 2].map(buildNettuno)),
+    nettuno: makeAnim([0, 1, 2].map(buildNettuno)),          // prima versione, tenuta da parte
+    nettunoFoto: makeAnim([0, 1, 2].map(buildNettunoFoto)),
     stadio: makeImage(buildStadium()), porta: makeImage(buildGoal()),
     bandiera: makeImage(buildFlag()), striscione: makeImage(buildBanner()),
     colosseo: makeImage(buildColosseum()), foro: makeImage(buildForum()), sanpietro: makeImage(buildStPeter()),
@@ -1128,7 +1250,7 @@
 
   // Periodi: numeri da..a → monumenti sullo sfondo (in ordine, a rotazione)
   const SCENES = [
-    { from: 1, to: 14, items: ['tempio', 'nettuno', 'rocca'] },   // Tivoli
+    { from: 1, to: 14, items: ['tempio', 'nettunoFoto', 'rocca'] },   // Tivoli (oppure 'nettuno')
     { from: 15, to: 20, items: ['stadio', 'striscione', 'porta', 'bandiera'] }, // Calcio e Juventus
     { from: 21, to: 30, items: ['colosseo', 'foro', 'sanpietro'] }, // Roma
     { from: 34, to: 40, items: ['aereo', 'torre', 'aereoLontano', 'aereo'] }, // Viaggi in aereo
